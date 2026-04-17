@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "User Profile",
+      "description": "Stores user's tall fit measurements and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "height": { "type": "string" },
+        "weight": { "type": "string" },
+        "build": { "type": "string" },
+        "inseam": { "type": "string" },
+        "shoulderWidth": { "type": "string" },
+        "style": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "height", "inseam"]
+    },
+    "GalleryPost": {
+      "title": "Fit Gallery Post",
+      "description": "A post in the community gallery showing a tall fit.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "height": { "type": "string" },
+        "brands": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "imageUrl", "height"]
+    },
+    "Brand": {
+      "title": "Tall Brand",
+      "description": "Information about brands that cater to tall people.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "description": { "type": "string" },
+        "maxInseam": { "type": "string" },
+        "categories": { "type": "array", "items": { "type": "string" } },
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["name", "url"]
+    }
+  },
+  "firestore": {
+    "/profiles/{uid}": {
+      "schema": "Profile",
+      "description": "User's private fit profile."
+    },
+    "/gallery": {
+      "schema": "GalleryPost",
+      "description": "Public community fit gallery."
+    },
+    "/brands": {
+      "schema": "Brand",
+      "description": "Public directory of tall-friendly brands."
+    }
+  }
+}

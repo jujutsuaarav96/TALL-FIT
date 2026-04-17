@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: profiles
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - Firebase Auth UID
+    //   - height: string (required)
+    //   - weight: string
+    //   - build: string
+    //   - inseam: string (required)
+    //   - shoulderWidth: string
+    //   - style: string
+    //   - updatedAt: timestamp
+    //
+    // Collection: gallery
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required) - Author UID
+    //   - userName: string
+    //   - userPhoto: string
+    //   - imageUrl: string (required)
+    //   - caption: string
+    //   - height: string (required)
+    //   - brands: list (strings)
+    //   - createdAt: timestamp
+    //
+    // Collection: brands
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - url: string (required)
+    //   - description: string
+    //   - maxInseam: string
+    //   - categories: list (strings)
+    //   - logoUrl: string
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "jujutsuaarav96@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['uid', 'height', 'inseam']) &&
+             data.uid is string &&
+             data.height is string && data.height.size() < 20 &&
+             data.inseam is string && data.inseam.size() < 20;
+    }
+
+    function isValidGalleryPost(data) {
+      return data.keys().hasAll(['uid', 'imageUrl', 'height']) &&
+             data.uid == request.auth.uid &&
+             data.imageUrl is string && (data.imageUrl.matches("^https://.*") || data.imageUrl.matches("^data:image/.*")) &&
+             data.height is string && data.height.size() < 20 &&
+             (!('caption' in data) || (data.caption is string && data.caption.size() < 500));
+    }
+
+    function isValidBrand(data) {
+      return data.keys().hasAll(['name', 'url']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.url is string && data.url.matches("^https://.*");
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /profiles/{uid} {
+      allow read, write: if isOwner(uid) && (request.method == 'GET' || isValidProfile(request.resource.data));
+    }
+
+    match /gallery/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidGalleryPost(request.resource.data);
+      allow update, delete: if isOwner(resource.data.uid);
+    }
+
+    match /brands/{brandId} {
+      allow read: if true;
+      allow write: if isAdmin() && (request.method == 'DELETE' || isValidBrand(request.resource.data));
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /favorites/{favId} {
+      allow read, delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}
